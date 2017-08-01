@@ -121,6 +121,11 @@ int main(int argc, char* argv[])
 			printf("No packet\n");
 			continue;
 		}
+		else if( is_ok == -1)
+		{
+			printf("Interface Down\n");
+			break;
+		}
 		ether_cover = (ether_h*)packet;
 		if(ntohs(ether_cover->type) == 0x0806)
 		{
@@ -137,19 +142,13 @@ int main(int argc, char* argv[])
 					break;
 				}
 				else
-				{
 					printf("No\n");
-				}
 			}
 			else
-			{
 				printf("Not reply opcode:%x\n", ntohs(arp_cover->opcode));
-			}
 		}
 		else
-		{
 			printf("Not ARP\n");
-		}
 	}
 	memset(send_packet, 0, sizeof(ethernet)+sizeof(arp));
 	
